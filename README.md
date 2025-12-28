@@ -2,3 +2,5 @@
 
 This repository contains examples demonstrating the different features and capabilities of NCShare.
 Please refer to the NCShare guide for detailed explanations: <https://userguide.ncshare.org/guides/examples>
+
+Feel free to join the community discussion at <https://github.com/orgs/NCShare/discussions>.
