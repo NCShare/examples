@@ -1,4 +1,4 @@
-# Examples
+# NCShare Examples
 
 This repository contains examples demonstrating the different features and capabilities of NCShare.
 Please refer to the NCShare guide for detailed explanations: <https://userguide.ncshare.org/guides/examples>
@@ -13,7 +13,7 @@ and explore the various example directories for specific use cases and implement
 
 Feel free to join the community discussion at <https://github.com/orgs/NCShare/discussions>.
 
-# Table of Contents
+## Table of Contents
 
 - [Basic-Matrix-Multiplication-with-GPUs](https://github.com/NCShare/examples/tree/main/Basic-Matrix-Multiplication-with-GPUs): Demonstrates basic matrix multiplication using CUDA and PyTorch with NCShare GPUs and calculates the GPU speedup compared to CPUs.
 - [Running-LLMs-on-NCShare-with-Ollama](https://github.com/NCShare/examples/tree/main/Running-LLMs-on-NCShare-with-Ollama): Demonstrates running LLMs on NCShare using Ollama.
