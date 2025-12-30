@@ -14,7 +14,7 @@ and explore the various example directories for specific use cases and implement
 Feel free to join the community discussion at <https://github.com/orgs/NCShare/discussions>.
 
 > [!IMPORTANT]
-> NCShare is a community effort. Please share your use cases and examples with us so we can continue to build and improve this space together!
+> NCShare is a community effort. Please share your use cases and examples with us so that we can continue to build and improve this space together!
 
 ## Table of Contents
 
