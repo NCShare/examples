@@ -1,0 +1,174 @@
+Bootstrap: docker
+From: intel/oneapi-hpckit:2025.2.2-0-devel-ubuntu24.04
+
+%labels
+    Author Uthpala Herath
+    Version 1.0.0
+
+%help
+    Container built from intel/oneapi-hpckit:2025.2.2-0-devel-ubuntu24.04
+    Installs FHI-aims, conda, jupyter, numpy, matplotlib, clims, ase,
+    scipy, attrs. Compiled with CUDA support.
+
+%post
+set -eux
+
+# --- timezone ---
+export TZ="America/New_York"
+ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime || true
+echo "${TZ}" > /etc/timezone
+export DEBIAN_FRONTEND=noninteractive
+
+# --- apt install packages ---
+apt-get update
+
+# install packages
+apt-get install -y --no-install-recommends \
+    cmake \
+    git \
+    vim \
+    htop \
+    wget \
+    environment-modules \
+    bison \
+    flex \
+    locales \
+    python3-venv \
+    tcl8.6 \
+    ca-certificates \
+    curl \
+    software-properties-common || true
+sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
+locale-gen en_US.UTF-8
+update-locale LANG=en_US.UTF-8
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+
+# --- Install Miniforge ---
+CONDA_DIR="/opt/conda"
+install_dir="$(dirname "${CONDA_DIR}")"
+
+mkdir -p "${install_dir}"
+wget -q "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh" -O /tmp/miniforge.sh
+/bin/bash /tmp/miniforge.sh -b -p "${CONDA_DIR}"
+rm -f /tmp/miniforge.sh
+
+# ensure non-root users can read/execute files
+chmod -R a+rX "${CONDA_DIR}" || true
+sync
+
+# --- Install packages ---
+"${CONDA_DIR}/bin/conda" install -y jupyter jupyterlab
+"${CONDA_DIR}/bin/pip3" install matplotlib numpy scipy clims ase attrs
+
+# Clean package caches
+"${CONDA_DIR}/bin/conda" clean -afy || true
+
+# --- CUDA Toolkit install ---
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-ubuntu2404.pin
+mv cuda-ubuntu2404.pin /etc/apt/preferences.d/cuda-repository-pin-600
+wget https://developer.download.nvidia.com/compute/cuda/12.8.0/local_installers/cuda-repo-ubuntu2404-12-8-local_12.8.0-570.86.10-1_amd64.deb
+dpkg -i cuda-repo-ubuntu2404-12-8-local_12.8.0-570.86.10-1_amd64.deb
+cp /var/cuda-repo-ubuntu2404-12-8-local/cuda-*-keyring.gpg /usr/share/keyrings/
+apt-get update
+apt-get -y install cuda-toolkit-12-8
+
+export CUDA_HOME=/usr/local/cuda
+export PATH="/usr/local/cuda/bin/:${PATH}"
+export LD_LIBRARY_PATH="/usr/local/cuda/lib64/:${LD_LIBRARY_PATH}"
+
+# --- FHI-aims install ---
+REPO_URL="https://aims-git.rz-berlin.mpg.de/aims/FHIaims.git"
+TARGET_DIR="/opt/FHIaims"
+BUILD_DIR="${TARGET_DIR}/build"
+CLEAN_REPO=${CLEAN_REPO:-0}
+mkdir -p "$(dirname "${TARGET_DIR}")"
+
+if [ -d "${TARGET_DIR}" ]; then
+  if [ "${CLEAN_REPO}" = "1" ]; then
+    echo "CLEAN_REPO=1 -> removing ${TARGET_DIR}"
+    rm -rf "${TARGET_DIR}"
+  else
+    echo "${TARGET_DIR} exists -> fetching updates"
+    if [ -d "${TARGET_DIR}/.git" ]; then
+      git -C "${TARGET_DIR}" fetch --all --prune
+      git -C "${TARGET_DIR}" reset --hard origin/$(git -C "${TARGET_DIR}" rev-parse --abbrev-ref HEAD)
+    else
+      echo "Warning: ${TARGET_DIR} exists but is not a git repo. Renaming and recloning."
+      mv "${TARGET_DIR}" "${TARGET_DIR}.bak.$(date +%s)"
+    fi
+  fi
+fi
+
+if [ ! -d "${TARGET_DIR}" ]; then
+  git clone --depth 1 "${REPO_URL}" "${TARGET_DIR}"
+fi
+
+# build
+mkdir -p "${BUILD_DIR}"
+cd "${BUILD_DIR}"
+
+cat > intel.cmake <<'EOF'
+set(CMAKE_Fortran_COMPILER "mpiifx" CACHE STRING "" FORCE)
+set(CMAKE_Fortran_FLAGS "-O3 -fp-model precise" CACHE STRING "" FORCE)
+set(Fortran_MIN_FLAGS "-O0 -fp-model precise" CACHE STRING "" FORCE)
+set(CMAKE_C_COMPILER "mpiicx" CACHE STRING "" FORCE)
+set(CMAKE_C_FLAGS "-O3 -fp-model precise -std=gnu99" CACHE STRING "" FORCE)
+set(CMAKE_CXX_COMPILER "mpiicpx" CACHE STRING "" FORCE)
+set(CMAKE_CXX_FLAGS "-O3 -fp-model precise -std=c++11" CACHE STRING "" FORCE)
+
+set(LIB_PATHS "$ENV{MKLROOT}/lib/intel64 " CACHE STRING "" FORCE)
+set(LIBS "mkl_intel_lp64 mkl_sequential mkl_core mkl_blacs_intelmpi_lp64 mkl_scalapack_lp64 mkl_core" CACHE STRING "" FORCE)
+set(USE_MPI ON CACHE BOOL "" FORCE)
+set(USE_SCALAPACK ON CACHE BOOL "" FORCE)
+set(USE_SPGLIB ON CACHE BOOL "" FORCE)
+set(USE_LIBXC ON CACHE BOOL "" FORCE)
+set(USE_HDF5 OFF CACHE BOOL "" FORCE)
+set(USE_RLSY ON CACHE BOOL "" FORCE)
+
+########################### GPU Acceleration Flags #########################
+set(USE_CUDA ON CACHE BOOL "")
+set(CMAKE_CUDA_COMPILER nvcc CACHE STRING "")
+set(CMAKE_CUDA_FLAGS "-O3 -DAdd_ -arch=sm_90 -lcublas " CACHE STRING "")
+EOF
+
+cmake -C intel.cmake ..
+make -j"$(nproc)"
+ln -sf aims.*.scalapack.mpi.x aims.x || true
+
+%environment
+# runtime environment variables (equivalent to Docker ENV)
+export TZ="America/New_York"
+export I_MPI_SHM="off"
+export MPIR_CVAR_CH3_NOLOCAL="1"
+export LD_LIBRARY_PATH="/usr/local/lib/:${LD_LIBRARY_PATH}"
+export OMPI_ALLOW_RUN_AS_ROOT="1"
+export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM="1"
+
+# add conda to PATH at runtime
+export CONDA_DIR="/opt/conda"
+export PATH="${CONDA_DIR}/bin:${PATH}"
+export CONDA_AUTO_ACTIVATE_BASE="true"
+unset PYTHONPATH
+export PYTHONNOUSERSITE=1
+
+# add FHI-aims to path
+export PATH="/opt/FHIaims/build/:${PATH}"
+
+# Ensure conda shell functions are registered for runtime shells
+if [ -f "${CONDA_DIR}/etc/profile.d/conda.sh" ]; then
+    . "${CONDA_DIR}/etc/profile.d/conda.sh"
+fi
+
+# CUDA variables
+export CUDA_HOME=/usr/local/cuda
+export PATH="/usr/local/cuda/bin/:${PATH}"
+export LD_LIBRARY_PATH="/usr/local/cuda/lib64/:${LD_LIBRARY_PATH}"
+
+%runscript
+echo "This container provides FHI-aims and Python libraries for the 2025 HybriD3 Materials workshop."
+if [ $# -eq 0 ]; then
+    exec /bin/bash -l -i
+else
+    exec "$@"
+fi

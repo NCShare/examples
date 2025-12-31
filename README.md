@@ -19,5 +19,6 @@ Feel free to join the community discussion at <https://github.com/orgs/NCShare/d
 ## Table of Contents
 
 - [Apptainer-Recipe-for-Jupyter-Notebook](https://github.com/NCShare/examples/tree/main/Apptainer-Recipe-for-Jupyter-Notebook): An Apptainer recipe to create a Jupyter Notebook environment with PyTorch and CUDA support.
+- [Apptainer-Recipe-for-FHI-aims](https://github.com/NCShare/examples/tree/main/Apptainer-Recipe-for-FHI-aims): An Apptainer recipe to build the electronic structure code FHI-aims with MPI and CUDA support.
 - [Basic-Matrix-Multiplication-with-GPUs](https://github.com/NCShare/examples/tree/main/Basic-Matrix-Multiplication-with-GPUs): Demonstrates basic matrix multiplication using CUDA and PyTorch with NCShare GPUs and calculates the GPU speedup compared to CPUs.
 - [Running-LLMs-on-NCShare-with-Ollama](https://github.com/NCShare/examples/tree/main/Running-LLMs-on-NCShare-with-Ollama): Demonstrates running LLMs on NCShare using Ollama.
