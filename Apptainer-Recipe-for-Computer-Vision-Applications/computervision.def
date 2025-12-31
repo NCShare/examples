@@ -1,0 +1,79 @@
+Bootstrap: docker
+FROM: nvidia/cuda:12.8.1-cudnn-devel-ubuntu24.04
+
+%labels
+    Author Uthpala Herath
+    Version v1.0.0
+
+%help
+  This image contains nvidia CUDA 12.8.1, ubuntu 24.04, Jupyter Notebook,
+  and Python libraries needed for computer vision tasks including OpenCV and Ultralytics.
+
+%post
+  set -eux
+  export TZ="America/New_York"
+  ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime || true
+  echo "${TZ}" > /etc/timezone
+  export DEBIAN_FRONTEND=noninteractive
+
+  # apt install packages
+  apt update
+  apt install -y --no-install-recommends build-essential wget curl libcurl4 zlib1g zlib1g-dev locales libx11-6 vim \
+    libglib2.0-0 \
+    libgl1 \
+    libglvnd0 \
+    libegl1 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgtk-3-0 \
+    libgdk-pixbuf2.0-0
+  sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
+  locale-gen en_US.UTF-8
+  update-locale LANG=en_US.UTF-8
+  apt-get clean
+  rm -rf /var/lib/apt/lists/*
+
+  # --- Install Miniforge ---
+  CONDA_DIR="/opt/conda"
+  install_dir="$(dirname "${CONDA_DIR}")"
+
+  mkdir -p "${install_dir}"
+  wget -q "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh" -O /tmp/miniforge.sh
+  /bin/bash /tmp/miniforge.sh -b -p "${CONDA_DIR}"
+  rm -f /tmp/miniforge.sh
+
+  # ensure non-root users can read/execute files
+  chmod -R a+rX "${CONDA_DIR}" || true
+  sync
+
+  # --- Install packages ---
+  "${CONDA_DIR}/bin/conda" install -y jupyter jupyterlab
+  "${CONDA_DIR}/bin/conda" install -y anaconda::glib
+  "${CONDA_DIR}/bin/pip3" install --no-cache-dir scipy numpy matplotlib pandas seaborn networkx requests safetensors ultralytics torch torchvision ultralytics ultralytics-thop opencv-python
+
+  # Clean package caches
+  "${CONDA_DIR}/bin/conda" clean -afy || true
+
+%environment
+ export LANG="en_US.UTF-8"
+ export LC_ALL="en_US.UTF-8"
+ export TZ="America/New_York"
+
+  # conda env
+  export CONDA_DIR="/opt/conda"
+  export PATH="${CONDA_DIR}/bin:${PATH}"
+  export CONDA_ENVS_PATH="${CONDA_DIR}/envs"
+  export CONDA_AUTO_ACTIVATE_BASE="true"
+
+# Ensure conda shell functions are registered for runtime shells
+  if [ -f "${CONDA_DIR}/etc/profile.d/conda.sh" ]; then
+    . "${CONDA_DIR}/etc/profile.d/conda.sh"
+  fi
+
+%runscript
+if [ $# -eq 0 ]; then
+  exec /bin/bash -l -i
+else
+  exec "$@"
+fi
