@@ -1,0 +1,45 @@
+Bootstrap: docker
+FROM: nvidia/cuda:12.8.1-cudnn-devel-ubuntu24.04
+
+%help
+  This image contains NVidia CUDA, Jupyter Lab, and PyTorch
+
+%labels
+  Maintainer Mike Newton
+  Maintainer_Email jmnewton@duke.edu
+
+%environment
+  export TZ="America/New_York"
+  export LANG="en_US.UTF-8"
+  export LC_COLLATE="en_US.UTF-8"
+  export LC_CTYPE="en_US.UTF-8"
+  export LC_MESSAGES="en_US.UTF-8"
+  export LC_MONETARY="en_US.UTF-8"
+  export LC_NUMERIC="en_US.UTF-8"
+  export LC_TIME="en_US.UTF-8"
+  export LC_PAPER="en_US.UTF-8"
+  export LC_MEASUREMENT="en_US.UTF-8"
+  export LC_ALL="en_US.UTF-8"
+  export PATH="/opt/conda/bin:$PATH"
+
+%post
+  export TZ="America/New_York"
+  export DEBIAN_FRONTEND=noninteractive
+  # Update Apt index and install some packages
+  apt update -qq
+  apt install -y build-essential wget curl libcurl4 zlib1g zlib1g-dev sudo
+
+  # Install miniconda
+  wget -O Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+  bash Miniforge3.sh -b -p /opt/conda
+  rm Miniforge3.sh
+
+  # Install Jupyter and PyTorch
+  export PATH="/opt/conda/bin:$PATH"
+  mamba install -y jupyter jupyterlab
+  pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+
+  # Install any other additional modules as needed
+
+%runscript
+  exec "${@}"
