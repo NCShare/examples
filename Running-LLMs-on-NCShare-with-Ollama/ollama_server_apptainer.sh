@@ -24,3 +24,5 @@ apptainer exec \
   ollama serve &
 
 echo "🦙 Ollama is now serving at http://$(hostname -f):$PORT"
+echo "Run the following command on the client shell to connect to the Ollama server:"
+echo "export OLLAMA_HOST=http://$(hostname -f):$PORT"
