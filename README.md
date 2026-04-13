@@ -1,6 +1,6 @@
 # NCShare Examples
 
-This repository contains examples demonstrating the different features and capabilities of NCShare.
+This repository contains practical examples for common NCShare workflows, including container recipes, GPU usage, and LLM tooling.
 Please refer to the NCShare guide for detailed explanations: <https://userguide.ncshare.org/guides/examples>
 
 To get started, clone the repository with the command,
@@ -14,5 +14,5 @@ and explore the various example directories for specific use cases and implement
 Feel free to join the community discussion at <https://github.com/orgs/NCShare/discussions>.
 
 > [!IMPORTANT]
-> NCShare is a community effort. Please share your use cases and examples with us so that we can continue to build and improve this space together!
+> NCShare is a community effort. Please share your use cases and examples with us so we can continue to build and improve this space together!
 
