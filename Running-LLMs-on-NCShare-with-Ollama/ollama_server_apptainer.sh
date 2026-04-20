@@ -3,7 +3,7 @@
 # Configuration
 CONTAINER_IMAGE="/opt/apps/containers/users/ollama.sif"
 INSTANCE_NAME="ollama-$USER"
-MODEL_PATH="/work/uherathmudiyanselage1/ollama/models"
+MODEL_PATH="/work/${USER}/ollama/models"
 PORT=11434
 
 # Unset variables to avoid conflicts
