@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 from ollama import Client
+import os
 
-HOST = "http://compute-gpu-03:11434"
 MODEL = "llama4:scout"
 
-
 def main():
-    client = Client(host=HOST)
+    host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+    client = Client(host=host)
 
     # Check if model already exists
     resp = client.list()
@@ -29,7 +29,7 @@ def main():
         }
     ]
 
-    print(f"Connected to {HOST} using model {MODEL}")
+    print(f"Connected to {host} using model {MODEL}")
     print("Type 'exit' or 'quit' to leave.\n")
 
     while True:
@@ -64,7 +64,6 @@ def main():
 
         # Add assistant reply to history so the model remembers context
         messages.append({"role": "assistant", "content": assistant_text})
-
 
 if __name__ == "__main__":
     main()
