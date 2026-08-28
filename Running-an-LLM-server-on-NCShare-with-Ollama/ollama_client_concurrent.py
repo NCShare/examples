@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from concurrent.futures import ThreadPoolExecutor
 from ollama import Client
 import os
 
@@ -26,18 +27,17 @@ if MODEL not in model_names:
     except Exception as e:
         print(f"Could not pull model: {e}")
 
-# Run each prompt in turn, streaming output token by token
+def ask(prompt):
+    resp = client.chat(model=MODEL, messages=[{"role": "user", "content": prompt}])
+    return prompt, resp.message.content
+
+# Submit all prompts at once and print them in the original order
 print("-" * 60)
 print(f"Model: {MODEL}")
-for i, prompt in enumerate(PROMPTS, start=1):
-    print("-" * 60)
-    print(f"Prompt {i}/{len(PROMPTS)}: {prompt!r}")
-    print("Output:")
-    for chunk in client.chat(
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        stream=True,
-    ):
-        print(chunk.message.content, end="", flush=True)
-    print()
+with ThreadPoolExecutor(max_workers=len(PROMPTS)) as pool:
+    for prompt, answer in pool.map(ask, PROMPTS):
+        print("-" * 60)
+        print(f"Prompt: {prompt!r}")
+        print("Output:")
+        print((answer or "").strip())
 print("-" * 60)
